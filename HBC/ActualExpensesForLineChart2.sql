@@ -1,4 +1,3 @@
-
 DECLARE @BudgetYear int = 2016
 DECLARE @BudgetMonth int = 2
 
@@ -17,8 +16,7 @@ WHERE
 t3.[CalendarYear] = @BudgetYear --(getdate())
 AND t3.[CalendarMonth] <= @BudgetMonth  --month(getdate())  --3
 
-AND t4.Code = 'HBf'
+AND t4.Code = 'HBC'
 AND t2.fundcode = '025'  
 AND t2.TenantID = 3
 GROUP BY  t3.[CalendarMonth], t3.[CalendarYear]
- 
