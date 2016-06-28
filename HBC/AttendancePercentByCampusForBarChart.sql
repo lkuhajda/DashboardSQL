@@ -1,5 +1,7 @@
+
 DECLARE @ReportYear INT = 2016
 DECLARE @ReportMonth TINYINT = 2
+
 
 ; WITH LastTwoSundays AS (
 	SELECT  ActualDate, DateID
@@ -8,7 +10,7 @@ DECLARE @ReportMonth TINYINT = 2
 	WHERE
 		ActualDate<= CONVERT(DATE, '02/29/2016')
 		AND CalendarDayOfWeekLabel = 'Sunday'
-	
+	    and calendaryear = @ReportYear 
 	--ORDER BY ActualDate DESC
 	)
 , LastTwoWeekends AS (
@@ -21,7 +23,7 @@ DECLARE @ReportMonth TINYINT = 2
 
 
 , FullAttendance AS (
-	SELECT 
+	SELECT DISTINCT
 		  LastTwoWeekends.SectionName
 		, LastTwoWeekends.ActualDate AS WeekendDate
 		--, DimCampus.Code
@@ -61,28 +63,10 @@ DECLARE @ReportMonth TINYINT = 2
 			, 'Camp'
 			, 'Other')
 		OR DimMinistry.Name LIKE '%Harvest Kids'
-	UNION
-	SELECT 
-		  LastTwoWeekends.SectionName
-		, LastTwoWeekends.ActualDate AS WeekendDate
-		, DimCampus.Code
-		, ''
-		, AttendanceCategory.Name
-		, 0 AS AttendanceCount
-	FROM LastTwoWeekends, DW.DimCampus
-		, (SELECT 'ADULTS'AS Name UNION SELECT 'KIDS' AS Name) AttendanceCategory
-	WHERE
-		DimCampus.Code IN ('RM','EL','CL','NI','CC','AU','DR')
-	UNION
-	SELECT 
-		  LastTwoWeekends.SectionName
-		, LastTwoWeekends.ActualDate AS WeekendDate
-		, 'Camp / Other' AS CampusCode
-		, ''
-		, 'ADULTS' 
-		, 0 AS AttendanceCount
-	FROM LastTwoWeekends
-), FullAttendance2 as (
+	
+)
+
+--select *  FROM FullAttendance
 
 SELECT
 	SectionName, WeekendDate
@@ -96,6 +80,7 @@ SELECT
 		WHEN 'DR' THEN 8
 		WHEN 'Camp / Other' THEN 9 END AS RowNumber
 	, Campus, MinistryName, AttendanceCategory, SUM(AttendanceCount) AS AttendanceCount
+	into #FullAttendance2
 FROM FullAttendance
 where campus <> 'Camp / Other'
 GROUP BY 
@@ -110,62 +95,21 @@ GROUP BY
 		WHEN 'DR' THEN 8
 		WHEN 'Camp / Other' THEN 9 END
 	, Campus, MinistryName, AttendanceCategory
-)
+--
 
 -- select *  FROM #FullAttendance2
 
-
-	SELECT  fullattendance2.campus as code, t.Name,
--- sum(attendancecount) as sum_attendancecount, 
-	(1.0*sum(attendancecount)) / 
+	SELECT  campus, 
+	sum(attendancecount), 
+	round((sum(attendancecount) * 100.0) / 
 		(
-		SELECT sum(attendancecount) FROM  FullAttendance2  WHERE AttendanceCategory = 'ADULTS' and campus <> 'Camp / Other'
-		) as rowPercent, 'Attendance' as type
+		SELECT sum(attendancecount) FROM  #FullAttendance2 WHERE AttendanceCategory = 'ADULTS' and campus <> 'Camp / Other'
+		),0)as rowPercent
 
-FROM  FullAttendance2 JOIN DW.DimCampus t on FullAttendance2.campus = t.code
+FROM  #FullAttendance2 
 WHERE AttendanceCategory = 'ADULTS'
 and campus <> 'Camp / Other'
-group by  fullattendance2.campus, t.Name
+group by  campus
+ORDER by campus
 
-UNION
-	SELECT 
-		   t4.code,t4.name as Campus,
-	--  SUM(t1.amount) as RevenueAmount,
-		  (1.0*SUM(t1.amount)) / 
-					(select SUM(t1.amount)
-					  FROM [Analytics].[DW].[FactRevenue] t1
-						LEFT JOIN [Analytics].[DW].[DimFinancialCategory] t2
-						ON t1.[FinancialCategoryID] = t2.[FinancialCategoryID]
-						JOIN [Analytics].DW.DimDate T3
-						ON t1.DateID = t3.DateID
-						LEFT JOIN [Analytics].[DW].[DimCampus] t4
-						ON t1.[CampusID] = t4.[CampusID]
-						WHERE
-						t3.[CalendarYear] = @ReportYear --year(getdate())
-
-						AND t3.[CalendarMonth] <=  @ReportMonth --month(getdate())  
-
-						AND t2.[GLCode] = '30010'
-						AND t2.[DepartmentCode] = '3015'
-						AND t2.fundcode = '025'  --I added, this was not in the spec
-						AND t2.TenantID = 3) as rowPercent, 'Contribution' as type
-		  
-		   
-	FROM [Analytics].[DW].[FactRevenue] t1
-	LEFT JOIN [Analytics].[DW].[DimFinancialCategory] t2
-	ON t1.[FinancialCategoryID] = t2.[FinancialCategoryID]
-	JOIN [Analytics].DW.DimDate T3
-	ON t1.DateID = t3.DateID
-	LEFT JOIN [Analytics].[DW].[DimCampus] t4
-	ON t1.[CampusID] = t4.[CampusID]
-	WHERE
-	t3.[CalendarYear] = year(getdate())
-
-	AND t3.[CalendarMonth] <= 2  --month(getdate()
-
-	AND t2.[GLCode] = '30010'
-	AND t2.[DepartmentCode] = '3015'
-	AND t2.fundcode = '025'  --I added, this was not in the spec
-	AND t2.TenantID = 3
-	GROUP BY  t4.name, code
-  order by rowPercent desc
+--drop table #FullAttendance2

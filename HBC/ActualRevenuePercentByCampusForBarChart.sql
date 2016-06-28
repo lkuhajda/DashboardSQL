@@ -1,26 +1,32 @@
+USE Analytics
+
 DECLARE @ReportYear INT = 2016
-DECLARE @ReportMonth TINYINT = 2
+DECLARE @ReportMonth TINYINT = 5
 
 	SELECT 
-		 case t4.name
+		 case t5.name
 			WHEN 'UNKNOWN' THEN 'Deerfield Rd'
-			ELSE t4.name 
+			ELSE t5.name 
 			end  as Campus, 
 		  SUM(t1.amount) as RevenueAmount,
 		  (SUM(t1.amount) * 100) / 
 					(select SUM(t1.amount)
 					  FROM [Analytics].[DW].[FactRevenue] t1
+
 						LEFT JOIN [Analytics].[DW].[DimFinancialCategory] t2
 						ON t1.[FinancialCategoryID] = t2.[FinancialCategoryID]
 						JOIN [Analytics].DW.DimDate T3
 						ON t1.DateID = t3.DateID
-						LEFT JOIN [Analytics].[DW].[DimCampus] t4
-						ON t1.[CampusID] = t4.[CampusID]
+						INNER JOIN DW.DimEntity t4
+						ON t1.EntityID = t4.EntityID
+						AND t1.TenantID = t4.TenantID
+						LEFT JOIN [Analytics].[DW].[DimCampus] t5
+						ON t1.[CampusID] = t5.[CampusID]
+						
 						WHERE
-						t3.[CalendarYear] = @ReportYear --year(getdate())
-
-						AND t3.[CalendarMonth] <=  @ReportMonth --month(getdate())  
-
+						t3.[CalendarYear] = @ReportYear 
+						AND t3.[CalendarMonth] <=  @ReportMonth  
+						AND t4.Code = 'HBC'
 						AND t2.[GLCode] = '30010'
 						AND t2.[DepartmentCode] = '3015'
 						AND t2.fundcode = '025'  
@@ -28,20 +34,24 @@ DECLARE @ReportMonth TINYINT = 2
 		  
 		   
 	FROM [Analytics].[DW].[FactRevenue] t1
+	
 	LEFT JOIN [Analytics].[DW].[DimFinancialCategory] t2
-	ON t1.[FinancialCategoryID] = t2.[FinancialCategoryID]
-	JOIN [Analytics].DW.DimDate T3
-	ON t1.DateID = t3.DateID
-	LEFT JOIN [Analytics].[DW].[DimCampus] t4
-	ON t1.[CampusID] = t4.[CampusID]
+		ON t1.[FinancialCategoryID] = t2.[FinancialCategoryID]
+	INNER JOIN [Analytics].DW.DimDate T3
+		ON t1.DateID = t3.DateID
+	INNER JOIN DW.DimEntity t4
+		ON t1.EntityID = t4.EntityID
+		AND t1.TenantID = t4.TenantID
+	LEFT JOIN [Analytics].[DW].[DimCampus] t5
+		ON t1.[CampusID] = t5.[CampusID]
+	
 	WHERE
-	t3.[CalendarYear] = year(getdate())
-
-	AND t3.[CalendarMonth] <= 2  --month(getdate()
-
+	t3.[CalendarYear] = @ReportYear 
+	AND t3.[CalendarMonth] <=  @ReportMonth 
+	AND t4.Code = 'HBC'
 	AND t2.[GLCode] = '30010'
 	AND t2.[DepartmentCode] = '3015'
-	AND t2.fundcode = '025'  --I added, this was not in the spec
+	AND t2.fundcode = '025'  
 	AND t2.TenantID = 3
-	GROUP BY  t4.name 
+	GROUP BY  t5.name 
 

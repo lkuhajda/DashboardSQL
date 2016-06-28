@@ -1,3 +1,5 @@
+
+USE Analytics
 /*
 HBC Averages
 */
@@ -71,8 +73,8 @@ DECLARE @NumSunPrior INT
 		OR (t3.[CalendarYear] =  @ReportYear -1
 	AND t3.[CalendarMonth] > @ReportMonth))
 	AND t4.Code = 'HBC'
-	--AND t2.[GLCode] = '30010'
-	--AND t2.[DepartmentCode] = '3015'
+	AND t2.[GLCode] = '30010'
+	AND t2.[DepartmentCode] = '3015'
 	AND fundcode = '025'  
 	AND t2.[TenantID] = 3
 
@@ -94,8 +96,8 @@ DECLARE @NumSunPrior INT
 		OR (t3.[CalendarYear] =  @ReportYear -2
 	AND t3.[CalendarMonth] > @ReportMonth))
 	AND t4.Code = 'HBC'
-	--AND t2.[GLCode] = '30010'
-	--AND t2.[DepartmentCode] = '3015'
+	AND t2.[GLCode] = '30010'
+	AND t2.[DepartmentCode] = '3015'
 	AND fundcode = '025'  
 	AND t2.[TenantID] = 3
 
@@ -396,11 +398,10 @@ SELECT  @AttendanceCountCurrent = SUM(AttendanceCount) FROM  #FullAttendanceCurr
 SELECT  @AttendanceCountRollCurrent = SUM(AttendanceCount) FROM  #FullAttendanceRollCurrent 
 SELECT  @AttendanceCountRollPrior = SUM(AttendanceCount) FROM  #FullAttendanceRollPrior
 
-SELECT @AttendanceCountPrior, @AttendanceCountCurrent, @AttendanceCountRollCurrent, @AttendanceCountRollPrior
+--SELECT @AttendanceCountPrior, @AttendanceCountCurrent, @AttendanceCountRollCurrent, @AttendanceCountRollPrior
+--select (@YTDrevenueRollPrior / @NumSunRollCurrent  ) / (@AttendanceCountRollCurrent / @NumSunRollCurrent ) as Rolling12MoPerAdult
+--select(@YTDrevenueRollPrior / @NumSunRollPrior  ) / (@AttendanceCountRollPrior / @NumSunRollPrior ) as Rolling12MoPerAdult
 
-
-select (@YTDrevenueRollPrior / @NumSunRollCurrent  ) / (@AttendanceCountRollCurrent / @NumSunRollCurrent ) as Rolling12MoPerAdult
-select(@YTDrevenueRollPrior / @NumSunRollPrior  ) / (@AttendanceCountRollPrior / @NumSunRollPrior ) as Rolling12MoPerAdult
 
 select CalendarYear ,  @AttendanceCountCurrent/@NumSunCurrent AS WklyAttend, RevenueAmount/@NumSunCurrent  AS WklyGiving
 , (RevenueAmount/@NumSunCurrent) / (@AttendanceCountCurrent/@NumSunCurrent)  as GivingPerAdult
@@ -414,7 +415,6 @@ select CalendarYear , @AttendanceCountPrior/@NumSunPrior AS WklyAttend, RevenueA
 from #YTDrevenue where calendaryear = @ReportYear -1
 
 
-/*
 drop table #FullAttendanceCurrent
 drop table #FullAttendancePrior
 drop table #LastNSundaysCurrentYear
@@ -424,6 +424,5 @@ drop table #LastNSundaysCurrentRoll
 drop table #LastNSundaysPriorRoll
 drop table #FullAttendanceRollCurrent
 drop table #FullAttendanceRollPrior
---drop table #RollrevenueCurrent
-*/
+
 
