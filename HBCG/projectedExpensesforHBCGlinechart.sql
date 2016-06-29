@@ -36,15 +36,6 @@ from dates d1 where datename(dw, date) = 'sunday'
 group by year(date), month(date)
 option (maxrecursion 1000)
 
---select * from #t1
-
---with HBCexpenses as (
---select BudgetMonth, BudgetYear, WeeklyBudgetAmount
---	, (select sum(d2.WeeklyBudgetAmount) from #t1 d2  where d2.BudgetMonth <= d1.BudgetMonth)  'CumulativeSum'
-
---from #t1 d1
---)
-
 -----------------------------------------------------
 --Calculate 'HCA', 'WITW', 'HBF Budget Expense 
 -----------------------------------------------------
@@ -60,8 +51,12 @@ option (maxrecursion 1000)
 	WHERE   t2.TenantID = 3
 	and Budgetyear = @ReportYear
 	AND
-	t4.Code IN ('HCA', 'WITW', 'HBF') 
-	AND t2.fundcode = '025'
+	(
+		(t4.Code = 'WITW' AND t2.fundcode IN  ('025', '086')) 
+		OR
+		(t4.Code IN ('HCA',  'HBF') AND t2.fundcode = '025')
+    )
+
 	 GROUP BY BudgetMonth, BudgetYear --, t4.Code
 	 )
 	 --	 select * from expenses
