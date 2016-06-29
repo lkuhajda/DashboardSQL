@@ -1,13 +1,15 @@
-
+USE [Analytics]
 
 /*
-Actual Revenue for WITW #1A Line Graph: Broadcase Ministry FY16 YTD REVENUE VS. EXPENSE ($000's)
+Actual expense for WITW #1A Line Graph: Broadcase Ministry FY16 YTD REVENUE VS. EXPENSE ($000's)
 */
-	DECLARE @FiscalYear INT = 2015,
-	@CalendarMonth varchar(2) = 4, 
+	DECLARE @FiscalYear INT = 2016,
+	@CalendarMonth varchar(2) = 5, 
 	@CalendarYear varchar(4) = 2016
 	
-	;WITH witwRevenue AS
+	--select   dateadd(month, +1, convert(date, @CalendarMonth + '/01/'+  @CalendarYear ))
+
+	;WITH witwExpense AS
 	(
 	SELECT
 	  t3.[FiscalYear]
@@ -15,6 +17,7 @@ Actual Revenue for WITW #1A Line Graph: Broadcase Ministry FY16 YTD REVENUE VS. 
 	, t3.[CalendarYear] 
 	, t3.[CalendarMonth] 
 	, SUM(t1.amount) as Amount
+	--, [StaffCode]
 	, ROW_NUMBER() OVER(ORDER BY t3.[FiscalYear] , t3.[FiscalMonth]) AS RowNum
 
 	FROM [Analytics].[DW].[FactExpense] t1
@@ -28,23 +31,25 @@ Actual Revenue for WITW #1A Line Graph: Broadcase Ministry FY16 YTD REVENUE VS. 
 	
 	WHERE 
 	t3.[FiscalYear] = @FiscalYear --year(getdate())
-	--AND t4.Code = 'witw'
 	AND t2.EntityCode  = 'WITW'
-	AND fundcode = '025' 
-    --AND GLCode in ('52605', '70239', '54070', '54069', '60016', '60017')
-	--and GLCode in ('20010', '20020', '21055', '22025', '22027', '22040')
-	and actualdate <  dateadd(month, +1, convert(date, @CalendarMonth + '/01/'+  @CalendarYear ))
-	--AND t2.FundCode NOT IN ('084','088') 
-	AND t2.[TenantID] = 3
+	
+	AND
+	(
+		(fundcode = '025'  --for WITW only, department is loaded into "staff code"
+		AND [StaffCode]  IN ( '5055', '5158', '5160', '5163', '6207' , '6217', '5162', '7217', '5178', '5180', '7219'
+		, '4106', '4056', '4036', '5038', '4016', '5058', '4096', '5078', '5098', '5138' ))
+		OR
+		(fundcode = '086')
+	)
 
 	GROUP BY  t3.[FiscalYear] , t3.[FiscalMonth] 
-	 , t3.[CalendarYear], t3.[CalendarMonth]
+	 , t3.[CalendarYear], t3.[CalendarMonth] --, [StaffCode] --, [DepartmentCode]
 	 --t3.[MinistryYear], t3.[MinistryMonth]
 	)
 	
 	SELECT FiscalYear, FiscalMonth, [CalendarYear] 
-	, [CalendarMonth],  Amount
-	,	(SELECT SUM(tc.Amount) from witwRevenue tc WHERE tc.RowNum <= tr.RowNum ) AS CumulativeSum
-	FROM witwRevenue tr
+	, [CalendarMonth],  Amount --, [StaffCode]
+	,	(SELECT SUM(tc.Amount) from witwExpense tc WHERE tc.RowNum <= tr.RowNum ) AS CumulativeSum
+	FROM witwExpense tr
 	ORDER BY tr.[FiscalYear] , tr.[FiscalMonth]
 
