@@ -3,7 +3,8 @@ USE Analytics
 /*
 WITW Net Income Monthly Current Year
 */
-	DECLARE @FiscalYear INT = 2016
+	DECLARE @ReportYear INT = 2016
+	DECLARE @FiscalYear INT = @ReportYear -1
 	
 	;WITH witwExpense AS
 	(
@@ -52,7 +53,7 @@ WITW Net Income Monthly Current Year
 	, t3.[CalendarMonth] 
 	, SUM(t1.amount) as Amount
 	, ROW_NUMBER() OVER(ORDER BY t3.[FiscalYear] , t3.[FiscalMonth]) AS RowNum
-
+	
 	FROM [Analytics].[DW].[FactRevenue] t1
 	LEFT JOIN [Analytics].[DW].[DimFinancialCategory] t2
 	ON t1.[FinancialCategoryID] = t2.[FinancialCategoryID]
@@ -73,10 +74,10 @@ WITW Net Income Monthly Current Year
 	 , t3.[CalendarYear], t3.[CalendarMonth]
 	 --t3.[MinistryYear], t3.[MinistryMonth]
 	)
-
+	
 	select t1.fiscalyear,t1.fiscalmonth,  t1.calendaryear,t1.calendarmonth, 
-	--t1.amount as RevenueAmount, t2.amount as ExpenseAmount,  
-	t1.amount - t2.amount as NetIncome
+	--t1.amount as RevenueAmount, t2.amount as ExpenseAmount, 
+	 t1.amount - t2.amount as NetIncome
 	from witwRevenue t1
 	inner join witwExpense t2
 	on t1.fiscalyear = t2.fiscalyear

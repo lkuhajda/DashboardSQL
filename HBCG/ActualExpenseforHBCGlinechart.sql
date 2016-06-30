@@ -32,7 +32,7 @@ DECLARE @ReportMonth TINYINT = 12
 		(
 			(t4.Code IN ('HCA', 'HBF') AND t2.fundcode = '025') 
 			OR
-			(t4.Code = 'HBC' AND t2.fundcode = '025' AND t2.[GLCode] = '30010' AND t2.[DepartmentCode] = '3015')
+			(t4.Code = 'HBC' AND t2.fundcode = '025' AND t2.GLCode NOT IN ('30010', '30058', '30075', '30046') AND t2.DepartmentCode <> '9120')
 
 			OR
 			(t4.Code  = 'WITW' 
