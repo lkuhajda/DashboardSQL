@@ -1,31 +1,34 @@
+USE Analytics
 
 DECLARE @ReportYear INT = 2016
-DECLARE @ReportMonth TINYINT = 2
+DECLARE @ReportMonth TINYINT = 5
 
-
-; WITH LastTwoSundays AS (
+; WITH LastnSundays AS (
 	SELECT  ActualDate, DateID
 	 
 	FROM DW.DimDate
 	WHERE
-		ActualDate<= CONVERT(DATE, '02/29/2016')
+		ActualDate >= (convert(date,  convert(varchar(10),@ReportMonth ) + '/01/'+  convert(varchar(10),@ReportYear)))
 		AND CalendarDayOfWeekLabel = 'Sunday'
-	    and calendaryear = @ReportYear 
+	    AND ActualDate <= DATEADD(d,-1, (convert(date, convert(varchar(10),@ReportMonth +1 ) + '/01/'+  convert(varchar(10),@ReportYear))))
 	--ORDER BY ActualDate DESC
 	)
-, LastTwoWeekends AS (
-	SELECT 'Current Week' AS SectionName, LastTwoSundays.ActualDate, DateID FROM LastTwoSundays
+
+	--select * from LastnSundays
+
+, LastnWeekends AS (
+	SELECT 'Current Week' AS SectionName, LastnSundays.ActualDate, DateID FROM LastnSundays
 	UNION
-	SELECT 'Previous Week' AS SectionName, LastTwoSundays.ActualDate, DateID -1  FROM LastTwoSundays
+	SELECT 'Previous Week' AS SectionName, LastnSundays.ActualDate,  CONVERT(VARCHAR(8), dateadd(d,-1,convert(date,convert(varchar(8),DateID))), 112)   FROM LastnSundays
 )
 
---select * from LastTwoWeekends order by dateid
+--select * from LastnWeekends order by dateid
 
 
 , FullAttendance AS (
 	SELECT DISTINCT
-		  LastTwoWeekends.SectionName
-		, LastTwoWeekends.ActualDate AS WeekendDate
+		  LastnWeekends.SectionName
+		, LastnWeekends.ActualDate AS WeekendDate
 		--, DimCampus.Code
 		, CASE WHEN DimCampus.Code = '--' AND DimMinistry.Name IN ('Camp','Other') THEN 'Camp / Other' ELSE 
 			CASE WHEN DimCampus.Code  = '--' THEN Campus2.Code ELSE DimCampus.Code END END AS Campus
@@ -43,8 +46,8 @@ DECLARE @ReportMonth TINYINT = 2
 			'KIDS' END AS AttendanceCategory
 		, FactAttendance.AttendanceCount
 	FROM DW.FactAttendance
-	INNER JOIN LastTwoWeekends 
-		ON FactAttendance.InstanceDateID = LastTwoWeekends.DateID
+	INNER JOIN LastnWeekends 
+		ON FactAttendance.InstanceDateID = LastnWeekends.DateID
 	INNER JOIN DW.DimMinistry
 		ON FactAttendance.MinistryID = DimMinistry.MinistryID
 	LEFT JOIN DW.DimCampus
@@ -101,10 +104,14 @@ GROUP BY
 
 	SELECT  campus, 
 	sum(attendancecount), 
-	round((sum(attendancecount) * 100.0) / 
-		(
-		SELECT sum(attendancecount) FROM  #FullAttendance2 WHERE AttendanceCategory = 'ADULTS' and campus <> 'Camp / Other'
-		),0)as rowPercent
+	--round((sum(attendancecount) * 100.0) / 
+	--	(
+	--	SELECT sum(attendancecount) FROM  #FullAttendance2 WHERE AttendanceCategory = 'ADULTS' and campus <> 'Camp / Other'
+	--	),0)as rowPercent
+	(sum(attendancecount) * 100.0) / 
+	(
+	SELECT sum(attendancecount) FROM  #FullAttendance2 WHERE AttendanceCategory = 'ADULTS' and campus <> 'Camp / Other'
+	)as rowPercent
 
 FROM  #FullAttendance2 
 WHERE AttendanceCategory = 'ADULTS'
@@ -112,4 +119,4 @@ and campus <> 'Camp / Other'
 group by  campus
 ORDER by campus
 
---drop table #FullAttendance2
+drop table #FullAttendance2
