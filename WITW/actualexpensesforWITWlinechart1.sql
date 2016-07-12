@@ -18,7 +18,7 @@ Actual expense for WITW #1A Line Graph: Broadcase Ministry FY16 YTD REVENUE VS. 
 	, t3.[CalendarMonth] 
 	, SUM(t1.amount) as Amount
 	--, [StaffCode]
-	, ROW_NUMBER() OVER(ORDER BY t3.[FiscalYear] , t3.[FiscalMonth]) AS RowNum
+	--, ROW_NUMBER() OVER(ORDER BY t3.[FiscalYear] , t3.[FiscalMonth]) AS RowNum
 
 	FROM [Analytics].[DW].[FactExpense] t1
 	LEFT JOIN [Analytics].[DW].[DimFinancialCategory] t2
@@ -41,15 +41,61 @@ Actual expense for WITW #1A Line Graph: Broadcase Ministry FY16 YTD REVENUE VS. 
 		OR
 		(fundcode = '086')
 	)
+	
 
 	GROUP BY  t3.[FiscalYear] , t3.[FiscalMonth] 
 	 , t3.[CalendarYear], t3.[CalendarMonth] --, [StaffCode] --, [DepartmentCode]
 	 --t3.[MinistryYear], t3.[MinistryMonth]
 	)
+
+--select * from witwexpense
+
+
+	, WITWexpensesother as (
+		SELECT     t3.[FiscalYear]
+	, t3.[FiscalMonth] 
+	, t3.[CalendarYear] 
+	, t3.[CalendarMonth] 
+		, SUM(t1.amount) as Amount
+		FROM [DW].[FactFinancialOther] T1
+		INNER JOIN [Analytics].[DW].[DimFinancialCategory] t2
+		ON t1.[FinancialCategoryID] = t2.[FinancialCategoryID]
+		INNER JOIN [Analytics].DW.DimDate T3
+		ON t1.DateID = t3.DateID
+		WHERE  t3.[FiscalYear] = @FiscalYear 
+		AND fundcode = '086'
+		AND GLCode in ('15151', '15146' )
+		and t2.entitycode = 'WITW'
+		
+	GROUP BY  t3.[FiscalYear] , t3.[FiscalMonth] 
+	 , t3.[CalendarYear], t3.[CalendarMonth] 
+		)
+
+	--select * from WITWexpensesother
+
+	,  ExpensesAll AS
+	 (
+	select  [FiscalYear], [FiscalMonth], [CalendarYear], [CalendarMonth], Amount from witwexpense
+	UNION ALL
+	select [FiscalYear], [FiscalMonth], [CalendarYear], [CalendarMonth], Amount from WITWexpensesother
+	)
+
+--Select * from ExpensesAll
+
+,  ExpensesAllSummary AS
+	 (
+	SELECT  [FiscalYear], [FiscalMonth], [CalendarYear], [CalendarMonth], SUM(Amount) as Amount
+	,  ROW_NUMBER() OVER(ORDER BY [FiscalYear], [FiscalMonth], [CalendarYear], [CalendarMonth]) AS RowNum
+	FROM ExpensesAll
+	GROUP BY   [FiscalYear], [FiscalMonth], [CalendarYear], [CalendarMonth]
+	 )
 	
+	--Select * from ExpensesAllSummary
+
+	-------------------original
 	SELECT FiscalYear, FiscalMonth, [CalendarYear] 
 	, [CalendarMonth],  Amount --, [StaffCode]
-	,	(SELECT SUM(tc.Amount) from witwExpense tc WHERE tc.RowNum <= tr.RowNum ) AS CumulativeSum
-	FROM witwExpense tr
+	,	(SELECT SUM(tc.Amount) from ExpensesAllSummary tc WHERE tc.RowNum <= tr.RowNum ) AS CumulativeSum
+	FROM ExpensesAllSummary tr
 	ORDER BY tr.[FiscalYear] , tr.[FiscalMonth]
 
